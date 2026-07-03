@@ -1,0 +1,81 @@
+import { describe, test, expect } from "vitest";
+import { AsyncQueue } from "../src/AsyncQueue.js";
+import { delay } from "./utils.js";
+
+describe("LifecycleSync", () => {
+    describe("enqueue", () => {
+        test("Should execute functions in order.", async () => {
+            const lifecycleSync = new AsyncQueue();
+            let result = "";
+            const fn1 = async () => { result += "1"; };
+            const fn2 = async () => { result += "2"; };
+            const fn3 = async () => { result += "3"; };
+
+            lifecycleSync.enqueue(fn1);
+            lifecycleSync.enqueue(fn2);
+            lifecycleSync.enqueue(fn3);
+
+            await delay();
+
+            expect(result).toBe("123");
+        });
+        test("Should return the promise of the enqueued function.", async () => {
+            const lifecycleSync = new AsyncQueue();
+            const fn = async () => "test";
+            const promise = lifecycleSync.enqueue(fn);
+            const result = await promise;
+            expect(result).toBe("test");
+        });
+        test("An error in the chain should not prevent subsequent functions from executing.", async () => {
+            const lifecycleSync = new AsyncQueue();
+            let result = "";
+            const fn1 = async () => { result += "1"; };
+            const fn2 = async () => { throw new Error("Test error"); };
+            const fn3 = async () => { result += "3"; };
+
+            lifecycleSync.enqueue(fn1);
+            lifecycleSync.enqueue(fn2);
+            lifecycleSync.enqueue(fn3);
+
+            await delay();
+
+            expect(result).toBe("13");
+        });
+        test("Should return a promise that throws when awaited if the enqueued function throws.", async () => {
+            const lifecycleSync = new AsyncQueue();
+            const fn = async () => { throw new Error("Test error"); };
+            const promise = lifecycleSync.enqueue(fn);
+            await expect(promise).rejects.toThrow("Test error");
+        });
+        test("Should abort the chain if a function throws and abortChainOnError is true.", async () => {
+            const lifecycleSync = new AsyncQueue(true);
+            let result = "";
+            const fn1 = async () => { result += "1"; };
+            const fn2 = async () => { throw new Error("Stop the queue!"); };
+            const fn3 = async () => { result += "3"; };
+            const fn4 = async () => { result += "4"; };
+
+            lifecycleSync.enqueue(fn1);
+            lifecycleSync.enqueue(fn2);
+            lifecycleSync.enqueue(fn3);
+            lifecycleSync.enqueue(fn4);
+            await delay();
+            // await expect(ep2).rejects.toThrow();
+            expect(result).toBe("1");
+            await lifecycleSync.resetError();
+        });
+    });
+    describe("resetError", () => {
+        test("Should reset the error state of the chain.", async () => {
+            const lifecycleSync = new AsyncQueue(true);
+            lifecycleSync.enqueue(async () => { throw new Error("Test error"); });
+            let p = lifecycleSync.enqueue(async () => Promise.resolve());
+            // The chain became useless.  Any subsequent enqueued function will not execute because they attach to 
+            // a rejected promise.
+            await expect(p).rejects.toThrow();
+            await lifecycleSync.resetError();
+            p = lifecycleSync.enqueue(async () => Promise.resolve());
+            await expect(p).resolves.toBeUndefined();
+        });
+    });
+});
