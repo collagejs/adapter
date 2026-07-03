@@ -1,0 +1,55 @@
+{
+  "name": "@collagejs/adapter",
+  "version": "0.0.1",
+  "description": "Helper code used in the creation of official CollageJS framework adapters",
+  "keywords": [
+    "collagejs",
+    "adapter",
+    "micro-frontend",
+    "micro-frontends"
+  ],
+  "homepage": "https://github.com/collagejs/adapter#readme",
+  "bugs": {
+    "url": "https://github.com/collagejs/adapter/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/collagejs/adapter.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "José Pablo Ramírez Vargas",
+    "email": "webJose@gmail.com",
+    "url": "https://github.com/webJose"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist",
+    "check": "tsc --noEmit",
+    "build": "npm run clean && tsc && publint",
+    "test:browser": "vitest"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@vitest/browser-playwright": "^4.1.9",
+    "publint": "^0.3.21",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  },
+  "peerDependencies": {
+    "@collagejs/core": "0.x || 1.x"
+  }
+}
