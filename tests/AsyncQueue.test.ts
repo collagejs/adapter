@@ -78,4 +78,41 @@ describe("LifecycleSync", () => {
             await expect(p).resolves.toBeUndefined();
         });
     });
+    describe("transferTo", () => {
+        test("Should transfer the chain to another queue and mark this queue as disposed.", async () => {
+            const lifecycleSync1 = new AsyncQueue(true);
+            const lifecycleSync2 = new AsyncQueue(true);
+            const fn1 = async () => { throw new Error("Stop the queue!"); };
+            const fn2 = async () => { };
+
+            lifecycleSync1.enqueue(fn1);
+            lifecycleSync1.transferTo(lifecycleSync2);
+            const p = lifecycleSync2.enqueue(fn2);
+
+            await delay();
+
+            await expect(p).rejects.toThrow();
+            await lifecycleSync2.resetError();
+        });
+        test("Should throw an error if the queue has been transferred.", async () => {
+            const lifecycleSync1 = new AsyncQueue();
+            const lifecycleSync2 = new AsyncQueue();
+            lifecycleSync1.transferTo(lifecycleSync2);
+            expect(() => lifecycleSync1.enqueue(async () => Promise.resolve())).toThrow();
+        });
+        test("Should protect the chain if this queue is in abort-on-error mode and the other one is not.", async () => {
+            const lifecycleSync1 = new AsyncQueue(true);
+            const lifecycleSync2 = new AsyncQueue(false);
+            const fn1 = async () => { throw new Error("Stop the queue!"); };
+            const fn2 = async () => { };
+
+            lifecycleSync1.enqueue(fn1);
+            lifecycleSync1.transferTo(lifecycleSync2);
+            const p = lifecycleSync2.enqueue(fn2);
+
+            await delay();
+
+            await expect(p).resolves.toBeUndefined();
+        });
+    });
 });

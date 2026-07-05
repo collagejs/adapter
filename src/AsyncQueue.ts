@@ -16,6 +16,10 @@ export class AsyncQueue {
      */
     #abortChainOnError: boolean;
     /**
+     * Flag indicating whether this queue has transferred its chain to another queue and should not be used anymore.
+     */
+    #disposed: boolean = false;
+    /**
      * Initializes a new instance of this class.
      * 
      * ### Aborting the Chain
@@ -33,11 +37,20 @@ export class AsyncQueue {
         this.#abortChainOnError = abortChainOnError;
     }
     /**
+     * Guards against using this queue after it has been transferred.  If the queue has been transferred, an error is thrown.
+     */
+    _guardDisposed() {
+        if (this.#disposed) {
+            throw new Error("This queue has been transferred and cannot be used anymore.");
+        }
+    }
+    /**
      * Enqueues an asynchronous function to be executed after the previous function in the queue has completed.
      * @param fn Asynchronous function to execute.
      * @returns The return value of the provided function.
      */
-    enqueue<T extends (...args: any[]) => any>(fn: T): ReturnType<T> {
+    enqueue<T extends (...args: any[]) => any>(fn: T): Promise<Awaited<ReturnType<T>>> {
+        this._guardDisposed();
         const op = this.#chain.then(() => fn());
         if (this.#abortChainOnError) {
             this.#chain = op;
@@ -45,13 +58,14 @@ export class AsyncQueue {
         else {
             this.#chain = op.catch(() => { });
         }
-        return op as ReturnType<T>;
+        return op as Promise<Awaited<ReturnType<T>>>;
     }
     /**
      * Resets the error state of the chain, allowing new functions to be enqueued and executed after an error has 
      * occurred.
      */
     async resetError(): Promise<void> {
+        this._guardDisposed();
         if (!this.#abortChainOnError) {
             throw new Error("resetError() is only applicable for abortable chains.  Your chain is healthy and does not need to be reset.");
         }
@@ -60,5 +74,21 @@ export class AsyncQueue {
         }
         catch { }
         this.#chain = Promise.resolve();
+    }
+    /**
+     * Transfers the chain of this queue to another queue, marking this queue as disposed.
+     * @param otherQueue The queue to transfer the chain to.
+     */
+    transferTo(otherQueue: AsyncQueue) {
+        this._guardDisposed();
+        // Protect the chain if this queue is in abort-on-error mode and the other one is not.
+        if (this.#abortChainOnError && !otherQueue.#abortChainOnError) {
+            otherQueue.#chain = this.#chain.catch(() => { });
+        }
+        else {
+            otherQueue.#chain = this.#chain;            
+        }
+        this.#chain = undefined as any;
+        this.#disposed = true;
     }
 }

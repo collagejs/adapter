@@ -7,8 +7,12 @@ describe("index", () => {
             "CorePieceLcQueue",
             "getPieceTarget",
             "trivialRelocate",
+            "hostDataAttribute",
+            "frameworkDataAttribute",
+            "hostAttributes",
         ];
         const actualExports = Object.keys(await import("../src/index.js"));
-        expect(actualExports).toEqual(expectedExports);
+        expect(actualExports).toEqual(expect.arrayContaining(expectedExports));
+        expect(expectedExports).toEqual(expect.arrayContaining(actualExports));
     });
 });

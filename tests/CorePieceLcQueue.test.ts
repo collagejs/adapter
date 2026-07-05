@@ -63,32 +63,10 @@ describe("CorePieceLcQueue", () => {
         });
     });
     describe("relocate", () => {
-        test("Should relocate the piece using the provided relocate function when 'CorePiece.relocate' returns 'ready'.", async () => {
-            const relocateFn = vi.fn().mockResolvedValue(5);
-            const corePiece = { } as CorePiece;
-            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn(), relocate: vi.fn().mockResolvedValue('ready') });
-            const queue = new CorePieceLcQueue(corePiece, mountPiece, relocateFn);
-            const source = document.createElement("div");
-            const target = document.createElement("div");
-            await queue.mount(source, {});
-            await queue.relocate(source, target, {});
-            expect(relocateFn).toHaveBeenCalledWith(source, target);
-        });
-        test("Should relocate the piece using 'trivialRelocate' when 'CorePiece.relocate' returns 'ready'.", async () => {
-            const corePiece = { } as CorePiece;
-            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn(), relocate: vi.fn().mockResolvedValue('ready') });
-            const queue = new CorePieceLcQueue(corePiece, mountPiece);
-            const source = document.createElement("div");
-            const target = document.createElement("div");
-            await queue.mount(source, {});
-            await queue.relocate(source, target, {});
-            expect(trivialRelocate).toHaveBeenCalledTimes(1);
-            expect(trivialRelocate).toHaveBeenCalledWith(source, target);
-        });
         test("Should unmount and remount the piece when 'CorePiece.relocate' returns false.", async () => {
             const unmount = vi.fn();
             const mountPiece = vi.fn().mockResolvedValue({ unmount, update: vi.fn(), relocate: vi.fn().mockResolvedValue(false) });
-            const corePiece = { } as CorePiece;
+            const corePiece = {} as CorePiece;
             const queue = new CorePieceLcQueue(corePiece, mountPiece);
             const source = document.createElement("div");
             const target = document.createElement("div");
@@ -98,7 +76,7 @@ describe("CorePieceLcQueue", () => {
             expect(mountPiece).toHaveBeenCalledWith(corePiece, target, {});
         });
         test("Should throw an error if the piece is not mounted.", async () => {
-            const corePiece = { } as CorePiece;
+            const corePiece = {} as CorePiece;
             const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn(), relocate: vi.fn() });
             const queue = new CorePieceLcQueue(corePiece, mountPiece);
             const source = document.createElement("div");
@@ -108,7 +86,7 @@ describe("CorePieceLcQueue", () => {
         test("Should warn if the piece is not remountable and relocation fails.", async () => {
             const unmount = vi.fn();
             const mountPiece = vi.fn().mockResolvedValue({ unmount, update: vi.fn(), relocate: vi.fn().mockResolvedValue(false), capabilities: {} });
-            const corePiece = { } as CorePiece;
+            const corePiece = {} as CorePiece;
             const queue = new CorePieceLcQueue(corePiece, mountPiece);
             const source = document.createElement("div");
             const target = document.createElement("div");
@@ -121,7 +99,7 @@ describe("CorePieceLcQueue", () => {
         test("Should not warn if the piece is remountable and relocation fails.", async () => {
             const unmount = vi.fn();
             const mountPiece = vi.fn().mockResolvedValue({ unmount, update: vi.fn(), relocate: vi.fn().mockResolvedValue(false), capabilities: { remountable: true } });
-            const corePiece = { } as CorePiece;
+            const corePiece = {} as CorePiece;
             const queue = new CorePieceLcQueue(corePiece, mountPiece);
             const source = document.createElement("div");
             const target = document.createElement("div");

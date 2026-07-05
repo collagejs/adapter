@@ -1,6 +1,7 @@
-import type { AcceptableTarget, CorePiece, MountedPiece, MountPiece, RelocateFn } from "@collagejs/core";
+import type { AcceptableTarget, CorePiece, MountedPiece, MountPiece } from "@collagejs/core";
 import { AsyncQueue } from "./AsyncQueue.js";
 import { trivialRelocate } from "./trivialRelocate.js";
+import type { CorePieceLcQueueOptions } from "./types.js";
 
 /**
  * A queue that manages the mounting, unmounting, updating, and relocating of a `CorePiece` object in a sequential manner.
@@ -12,7 +13,7 @@ export class CorePieceLcQueue<
     /**
      * CorePiece object to be managed by this queue.
      */
-    #corePiece: CorePiece<TProps, TCap>;
+    #corePiece: CorePiece<TProps, TCap> | Promise<CorePiece<TProps, TCap>>;
     /**
      * MountPiece function that handles the mounting of the `CorePiece` object.
      */
@@ -22,21 +23,26 @@ export class CorePieceLcQueue<
      */
     #mountedPiece: MountedPiece<TProps, TCap> | undefined;
     /**
-     * Optional RelocateFn function that handles the relocation of the `CorePiece` object. If not provided, a default 
-     * relocation function will be used.
+     * Optional RelocateFn function that handles the relocation of the `CorePiece` object's root element(s). If not provided, a 
+     * default relocation function will be used.
      */
-    #relocateFn: RelocateFn | undefined;
+    #relocateFn: (source: AcceptableTarget, target: AcceptableTarget) => Promise<boolean>;
+    /**
+     * Logger instance for logging lifecycle events, if enabled.
+     */
+    #logger: Console | undefined = undefined;
     /**
      * Initializes a new instance of this class.
      * @param corePiece `CorePiece` object to manage.
      * @param mountPiece Function used to mount the `CorePiece` object.
-     * @param relocateFn Optional function used to relocate the `CorePiece` object.
+     * @param options Optional configuration options for the queue.
      */
-    constructor(corePiece: CorePiece<TProps, TCap>, mountPiece: MountPiece<TProps, TCap>, relocateFn?: RelocateFn) {
+    constructor(corePiece: CorePiece<TProps, TCap> | Promise<CorePiece<TProps, TCap>>, mountPiece: MountPiece<TProps, TCap>, options?: CorePieceLcQueueOptions) {
         super(true);
         this.#corePiece = corePiece;
         this.#mountPiece = mountPiece;
-        this.#relocateFn = relocateFn;
+        this.#relocateFn = options?.relocateFn ?? ((s, t) => Promise.resolve(trivialRelocate(s, t)));
+        this.#logger = options?.enableLcLogging ? console : undefined;
     }
     /**
      * Mounts the `CorePiece` object to the specified target with the given properties.
@@ -45,11 +51,14 @@ export class CorePieceLcQueue<
      * @returns The mounting promise.
      */
     mount(target: AcceptableTarget, props: TProps) {
+        this._guardDisposed();
         return this.enqueue(async () => {
             if (this.#mountedPiece) {
                 throw new Error("Cannot mount a piece that is already mounted.");
             }
+            this.#logger?.debug("Mounting piece...");
             this.#mountedPiece = await this.#mountPiece(this.#corePiece, target, props);
+            this.#logger?.debug("Piece mounted.");
         });
     }
     /**
@@ -57,9 +66,12 @@ export class CorePieceLcQueue<
      * @returns The unmounting promise.
      */
     unmount() {
+        this._guardDisposed();
         return this.enqueue(async () => {
+            this.#logger?.debug("Unmounting piece...");
             await this.#mountedPiece?.unmount();
             this.#mountedPiece = undefined;
+            this.#logger?.debug("Piece unmounted.");
         });
     }
     /**
@@ -68,11 +80,14 @@ export class CorePieceLcQueue<
      * @returns The updating promise.
      */
     update(props: TProps) {
-        return this.enqueue(() => {
+        this._guardDisposed();
+        return this.enqueue(async () => {
             if (!this.#mountedPiece) {
                 throw new Error("Cannot update a piece that is not mounted.");
             }
-            return this.#mountedPiece.update(props);
+            this.#logger?.debug("Updating piece...");
+            await this.#mountedPiece.update(props);
+            this.#logger?.debug("Piece updated.");
         });
     }
     /**
@@ -83,15 +98,17 @@ export class CorePieceLcQueue<
      * @returns The relocation promise.
      */
     relocate(source: AcceptableTarget, target: AcceptableTarget, props: TProps) {
+        this._guardDisposed();
         return this.enqueue(async () => {
             if (!this.#mountedPiece) {
                 throw new Error("Cannot relocate a piece that is not mounted.");
             }
-            const result = await this.#mountedPiece.relocate(source, target);
-            if (result === 'ready') {
-                (this.#relocateFn ?? trivialRelocate)(source, target);
+            if (source === target) {
+                return;
             }
-            else if (!result) {
+            this.#logger?.debug(`Relocating piece from ${source} to ${target}...`);
+            const result = await this.#mountedPiece.relocate(source, target, this.#relocateFn);
+            if (!result) {
                 // Relocation failed or is disallowed, so unmount and mount instead.
                 if (!this.#mountedPiece.capabilities?.remountable) {
                     console.warn("The piece either disallowed or failed relocation internally.  It will be remounted in the new target despite not being remountable, which might result in inconsistencies or errors.");
@@ -99,6 +116,18 @@ export class CorePieceLcQueue<
                 await this.#mountedPiece.unmount();
                 this.#mountedPiece = await this.#mountPiece(this.#corePiece, target, props);
             }
+            this.#logger?.debug("Piece relocated.");
         });
+    }
+    /**
+     * Transfers the chain of this queue to another queue, marking this queue as disposed.  It also ejects its internal 
+     * state in case it is helpful.
+     * @param otherQueue The queue to transfer the chain to.
+     * @returns A tuple containing the core piece, `mountPiece` function, and mounted piece associated with this queue.
+     */
+    transferTo(otherQueue: CorePieceLcQueue<TProps, TCap>) {
+        this._guardDisposed();
+        super.transferTo(otherQueue);
+        return [this.#corePiece, this.#mountPiece, this.#mountedPiece] as const;
     }
 }

@@ -29,7 +29,7 @@ describe("trivialRelocate", () => {
         expect(target.childNodes).toHaveLength(0);
         expect(source.childNodes).toHaveLength(0);
     });
-    test("Should return the number of relocated children.", () => {
+    test("Should return 'true' when children are relocated.", () => {
         const source = document.createElement("div");
         const target = document.createElement("div");
         const child1 = document.createElement("main");
@@ -37,8 +37,8 @@ describe("trivialRelocate", () => {
         source.appendChild(child1);
         source.appendChild(child2);
 
-        const relocatedCount = trivialRelocate(source, target);
+        const relocated = trivialRelocate(source, target);
 
-        expect(relocatedCount).toBe(2);
+        expect(relocated).toBe(true);
     });
 });
