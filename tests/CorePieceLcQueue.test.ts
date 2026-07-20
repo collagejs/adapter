@@ -25,6 +25,17 @@ describe("CorePieceLcQueue", () => {
             await queue.mount(target, {});
             await expect(queue.mount(target, {})).rejects.toThrow();
         });
+        test("Should call the onMounted callback with the mountPiece function.", async () => {
+            const corePiece = {} as CorePiece;
+            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn(), mountPiece: "mountPieceFunction" });
+            const queue = new CorePieceLcQueue(corePiece, mountPiece);
+            const target = document.createElement("div");
+            let mountedPieceFunction: any;
+            await queue.mount(target, {}, (mountPiece) => {
+                mountedPieceFunction = mountPiece;
+            });
+            expect(mountedPieceFunction).toBe("mountPieceFunction");
+        });
     });
     describe("unmount", () => {
         test("Should unmount the piece.", async () => {
