@@ -48,6 +48,8 @@ export class CorePieceLcQueue<
      * Mounts the `CorePiece` object to the specified target with the given properties.
      * @param target The target to mount the piece to.
      * @param props The properties to pass to the piece during mounting.
+     * @param onMounted Optional callback function that will be called with the `mountPiece` function after the piece 
+     * is successfully mounted.
      * @returns The mounting promise.
      */
     mount(target: AcceptableTarget, props: TProps, onMounted?: (mountPiece: MountedPiece['mountPiece']) => void) {
