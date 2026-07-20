@@ -48,11 +48,9 @@ export class CorePieceLcQueue<
      * Mounts the `CorePiece` object to the specified target with the given properties.
      * @param target The target to mount the piece to.
      * @param props The properties to pass to the piece during mounting.
-     * @param onMounted Optional callback function that will be called with the `mountPiece` function after the piece 
-     * is successfully mounted.
      * @returns The mounting promise.
      */
-    mount(target: AcceptableTarget, props: TProps, onMounted?: (mountPiece: MountedPiece['mountPiece']) => void) {
+    mount(target: AcceptableTarget, props: TProps) {
         this._guardDisposed();
         return this.enqueue(async () => {
             if (this.#mountedPiece) {
@@ -61,7 +59,6 @@ export class CorePieceLcQueue<
             this.#logger?.debug("Mounting piece...");
             this.#mountedPiece = await this.#mountPiece(this.#corePiece, target, props);
             this.#logger?.debug("Piece mounted.");
-            onMounted?.(this.#mountedPiece.mountPiece);
         });
     }
     /**
