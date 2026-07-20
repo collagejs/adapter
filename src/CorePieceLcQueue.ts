@@ -50,7 +50,7 @@ export class CorePieceLcQueue<
      * @param props The properties to pass to the piece during mounting.
      * @returns The mounting promise.
      */
-    mount(target: AcceptableTarget, props: TProps) {
+    mount(target: AcceptableTarget, props: TProps, onMounted?: (mountPiece: MountedPiece['mountPiece']) => void) {
         this._guardDisposed();
         return this.enqueue(async () => {
             if (this.#mountedPiece) {
@@ -59,6 +59,7 @@ export class CorePieceLcQueue<
             this.#logger?.debug("Mounting piece...");
             this.#mountedPiece = await this.#mountPiece(this.#corePiece, target, props);
             this.#logger?.debug("Piece mounted.");
+            onMounted?.(this.#mountedPiece.mountPiece);
         });
     }
     /**
