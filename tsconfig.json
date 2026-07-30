@@ -17,7 +17,6 @@
     "noUncheckedIndexedAccess": true,
     "jsx": "react-jsx"
   },
-  "files": [],
   "references": [
     {
       "path": "./packages/adapter"
