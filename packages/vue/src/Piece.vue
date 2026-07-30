@@ -1,23 +1,7 @@
-<script type="module" lang="ts">
-export const piecePropsKey = '__pieceProps';
-
-export function piece<
-    TProps extends Record<string, any> = any
->
-    (corePiece: CorePiece<TProps> | Promise<CorePiece<TProps>>, options?: PieceOptions) {
-    return {
-        [piecePropsKey]: {
-            piece: corePiece,
-            ...options
-        }
-    };
-}
-</script>
-
 <script setup lang="ts" generic="TProps extends Record<string, any> = any">
 
 import type { CorePiece, MountPiece } from '@collagejs/core';
-import { computed, inject, onMounted, ref, getCurrentInstance, onUnmounted, watchEffect, watch, toRefs } from 'vue';
+import { computed, inject, onMounted, ref, getCurrentInstance, onUnmounted, watch } from 'vue';
 import type { PieceOptions } from './types.js';
 import { mountPieceContextKey } from './context.js';
 import { CorePieceLcQueue, getPieceTarget, hostAttributes } from '@collagejs/adapter';
