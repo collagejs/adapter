@@ -2,11 +2,12 @@ name: Test
 
 on:
   pull_request:
+    branches: [main]
     paths:
-      - 'packages/**'
-      - '.github/workflows/test.yml'
+      - 'src/**'
+      - 'tests/**'
       - 'package.json'
-      - 'package-lock.json'
+      - 'tsconfig.json'
 
 jobs:
   test:

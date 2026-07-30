@@ -1,56 +1,29 @@
 {
-  "name": "@collagejs/adapter",
-  "version": "0.1.0",
-  "description": "Helper code used in the creation of official CollageJS framework adapters",
-  "keywords": [
-    "collagejs",
-    "adapter",
-    "micro-frontend",
-    "micro-frontends"
-  ],
-  "homepage": "https://github.com/collagejs/adapter#readme",
-  "bugs": {
-    "url": "https://github.com/collagejs/adapter/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/collagejs/adapter.git"
-  },
-  "license": "MIT",
+  "name": "collagejs-adapter",
+  "private": true,
   "author": {
     "name": "José Pablo Ramírez Vargas",
     "email": "webJose@gmail.com",
     "url": "https://github.com/webJose"
   },
-  "type": "module",
-  "main": "dist/index.js",
-  "files": [
-    "dist"
+  "workspaces": [
+    "packages/*"
   ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "clean": "rimraf dist",
-    "check": "tsc --noEmit",
-    "build": "npm run clean && tsc && publint",
-    "test:browser": "vitest",
-    "test:cicd": "npx playwright install && npm run test"
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish",
+    "build:adapter": "npm run build --workspace=packages/adapter",
+    "build:adapters": "npm run build --workspace=packages/svelte --workspace=packages/react --workspace=packages/vue",
+    "build:packages": "npm run build:adapter && npm run build:adapters",
+    "build": "npm run build:packages",
+    "test": "npm run test --workspaces",
+    "test:cicd": "npx playwright install && npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "check": "npm run check --workspaces",
+    "clean": "npm run clean --workspaces"
   },
   "devDependencies": {
-    "@testing-library/dom": "^10.4.1",
-    "@vitest/browser-playwright": "^4.1.9",
-    "publint": "^0.3.21",
-    "rimraf": "^6.1.3",
-    "typescript": "^7.0.2",
-    "vitest": "^4.1.9"
-  },
-  "peerDependencies": {
-    "@collagejs/core": "0.x || 1.x"
+    "@changesets/cli": "^2.27.9"
   }
 }
