@@ -36,9 +36,9 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "clean": "rimraf dist tsconfig.build.tsbuildinfo",
     "check": "tsc --noEmit",
-    "build": "npm run clean && tsc && publint",
+    "build": "npm run clean && tsc -p tsconfig.build.json && publint",
     "test:cicd": "npx playwright install && npm run test"
   },
   "devDependencies": {
@@ -46,7 +46,7 @@
     "@vitest/browser-playwright": "^4.1.9",
     "publint": "^0.3.21",
     "rimraf": "^6.1.3",
-    "typescript": "^7.0.2",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   },
   "peerDependencies": {
