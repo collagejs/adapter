@@ -21,7 +21,8 @@
     "dev": "vite",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "echo No tests yet"
   },
   "dependencies": {
     "@collagejs/adapter": "0.x || 1.x",
