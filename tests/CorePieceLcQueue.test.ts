@@ -85,7 +85,7 @@ describe("CorePieceLcQueue", () => {
         });
         test("Should warn if the piece is not remountable and relocation fails.", async () => {
             const unmount = vi.fn();
-            const mountPiece = vi.fn().mockResolvedValue({ unmount, update: vi.fn(), relocate: vi.fn().mockResolvedValue(false), capabilities: {} });
+            const mountPiece = vi.fn().mockResolvedValue({ unmount, update: vi.fn(), relocate: vi.fn().mockResolvedValue(false), meta: {} });
             const corePiece = {} as CorePiece;
             const queue = new CorePieceLcQueue(corePiece, mountPiece);
             const source = document.createElement("div");
@@ -98,7 +98,7 @@ describe("CorePieceLcQueue", () => {
         });
         test("Should not warn if the piece is remountable and relocation fails.", async () => {
             const unmount = vi.fn();
-            const mountPiece = vi.fn().mockResolvedValue({ unmount, update: vi.fn(), relocate: vi.fn().mockResolvedValue(false), capabilities: { remountable: true } });
+            const mountPiece = vi.fn().mockResolvedValue({ unmount, update: vi.fn(), relocate: vi.fn().mockResolvedValue(false), meta: { remountable: true } });
             const corePiece = {} as CorePiece;
             const queue = new CorePieceLcQueue(corePiece, mountPiece);
             const source = document.createElement("div");

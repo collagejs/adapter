@@ -8,20 +8,20 @@ import type { CorePieceLcQueueOptions } from "./types.js";
  */
 export class CorePieceLcQueue<
     TProps extends Record<string, any> = Record<string, any>,
-    TCap extends Record<string, any> = {}
+    TMeta extends Record<string, any> = {}
 > extends AsyncQueue {
     /**
      * CorePiece object to be managed by this queue.
      */
-    #corePiece: CorePiece<TProps, TCap> | Promise<CorePiece<TProps, TCap>>;
+    #corePiece: CorePiece<TProps, TMeta> | Promise<CorePiece<TProps, TMeta>>;
     /**
      * MountPiece function that handles the mounting of the `CorePiece` object.
      */
-    #mountPiece: MountPiece<TProps, TCap>;
+    #mountPiece: MountPiece<TProps, TMeta>;
     /**
      * MountedPiece object that represents the currently mounted state of the `CorePiece` object, if any.
      */
-    #mountedPiece: MountedPiece<TProps, TCap> | undefined;
+    #mountedPiece: MountedPiece<TProps, TMeta> | undefined;
     /**
      * Optional RelocateFn function that handles the relocation of the `CorePiece` object's root element(s). If not provided, a 
      * default relocation function will be used.
@@ -37,7 +37,7 @@ export class CorePieceLcQueue<
      * @param mountPiece Function used to mount the `CorePiece` object.
      * @param options Optional configuration options for the queue.
      */
-    constructor(corePiece: CorePiece<TProps, TCap> | Promise<CorePiece<TProps, TCap>>, mountPiece: MountPiece<TProps, TCap>, options?: CorePieceLcQueueOptions) {
+    constructor(corePiece: CorePiece<TProps, TMeta> | Promise<CorePiece<TProps, TMeta>>, mountPiece: MountPiece<TProps, TMeta>, options?: CorePieceLcQueueOptions) {
         super(true);
         this.#corePiece = corePiece;
         this.#mountPiece = mountPiece;
@@ -110,7 +110,7 @@ export class CorePieceLcQueue<
             const result = await this.#mountedPiece.relocate(source, target, this.#relocateFn);
             if (!result) {
                 // Relocation failed or is disallowed, so unmount and mount instead.
-                if (!this.#mountedPiece.capabilities?.remountable) {
+                if (!this.#mountedPiece.meta?.remountable) {
                     console.warn("The piece either disallowed or failed relocation internally.  It will be remounted in the new target despite not being remountable, which might result in inconsistencies or errors.");
                 }
                 await this.#mountedPiece.unmount();
@@ -125,7 +125,7 @@ export class CorePieceLcQueue<
      * @param otherQueue The queue to transfer the chain to.
      * @returns A tuple containing the core piece, `mountPiece` function, and mounted piece associated with this queue.
      */
-    transferTo(otherQueue: CorePieceLcQueue<TProps, TCap>) {
+    transferTo(otherQueue: CorePieceLcQueue<TProps, TMeta>) {
         this._guardDisposed();
         super.transferTo(otherQueue);
         return [this.#corePiece, this.#mountPiece, this.#mountedPiece] as const;
