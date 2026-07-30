@@ -36,10 +36,9 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "clean": "rimraf dist",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
     "check": "tsc --noEmit",
     "build": "npm run clean && tsc && publint",
-    "test:browser": "vitest",
     "test:cicd": "npx playwright install && npm run test"
   },
   "devDependencies": {
