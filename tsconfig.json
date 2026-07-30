@@ -21,6 +21,15 @@
   "references": [
     {
       "path": "./packages/adapter"
+    },
+    {
+      "path": "./packages/svelte"
+    },
+    {
+      "path": "./packages/react"
+    },
+    {
+      "path": "./packages/vue"
     }
   ]
 }
