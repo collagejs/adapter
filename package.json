@@ -1,6 +1,6 @@
 {
   "name": "@collagejs/adapter",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Helper code used in the creation of official CollageJS framework adapters",
   "keywords": [
     "collagejs",
