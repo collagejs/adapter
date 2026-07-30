@@ -17,10 +17,22 @@
     "email": "webJose@gmail.com",
     "url": "https://github.com/webJose"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
-    "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "build": "vue-tsc -b && vite build",
+    "clean": "rimraf dist tsconfig.build.tsbuildinfo node_modules/.tmp",
+    "check": "vue-tsc --noEmit",
+    "build:types": "vue-tsc -p ./tsconfig.build.json",
+    "build": "npm run clean && vue-tsc -b && vite build && npm run build:types && publint",
     "preview": "vite preview",
     "test": "echo No tests yet"
   },
@@ -28,9 +40,6 @@
     "@collagejs/adapter": "0.x || 1.x",
     "@collagejs/core": "0.x || 1.x",
     "vue": "^3.5.39"
-  },
-  "overrides": {
-    "typescript": "6.0.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
