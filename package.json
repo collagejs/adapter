@@ -18,6 +18,7 @@
     "build:packages": "npm run build:adapter && npm run build:adapters",
     "build": "npm run build:packages",
     "test": "npm run test --workspaces",
+    "test:cicd": "npx playwright install && npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "check": "npm run check --workspaces",
     "clean": "npm run clean --workspaces"
