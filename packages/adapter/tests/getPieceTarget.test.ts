@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from "vitest";
-import { getPieceTarget } from "../src/getPieceTarget";
+import { getPieceTarget } from "../src/getPieceTarget.js";
 
 describe("getPieceTarget", () => {
     test("Should return the element itself when shadow is false.", () => {
