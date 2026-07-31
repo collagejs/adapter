@@ -79,7 +79,7 @@ export class CorePieceLcQueue<
      * @param props The properties to update the piece with.
      * @returns The updating promise.
      */
-    update(props: TProps) {
+    update(props: Partial<TProps>) {
         this._guardDisposed();
         return this.enqueue(async () => {
             if (!this.#mountedPiece) {

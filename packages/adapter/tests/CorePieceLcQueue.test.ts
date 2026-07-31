@@ -1,7 +1,6 @@
 import { describe, test, expect, vi } from "vitest";
 import { CorePieceLcQueue } from "../src/CorePieceLcQueue.js";
-import { trivialRelocate } from "../src/trivialRelocate.js";
-import { CorePiece } from "@collagejs/core";
+import type { CorePiece } from "@collagejs/core";
 
 vi.mock(import("../src/trivialRelocate.js"), () => ({
     trivialRelocate: vi.fn().mockReturnValue(3),
