@@ -9,16 +9,16 @@ type: Bug
 ---
 
 **Framework Or Library**
-- [] (no framework)
-- [] React
-- [] Svelte
-- [] Vue
-- [] Other: (specify)
+- [ ] (no framework)
+- [ ] React
+- [ ] Svelte
+- [ ] Vue
+- [ ] Other: (specify)
 
 Is this about creating a core piece or mounting/using a core piece, or both?
 
-- [] Creating
-- [] Using
+- [ ] Creating
+- [ ] Using
 
 **Describe the bug**
 A clear and concise description of what the bug is.
