@@ -39,7 +39,7 @@
     "test": "vitest run",
     "test:cicd": "npx playwright install && npm run test",
     "test:watch": "vitest",
-    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "clean": "rimraf dist tsconfig.build.tsbuildinfo",
     "build:types": "tsc -p tsconfig.build.json",
     "build": "npm run clean && vite build && npm run build:types && publint"
   },

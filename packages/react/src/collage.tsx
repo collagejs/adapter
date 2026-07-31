@@ -141,7 +141,7 @@ function buildPieceFactory() {
             };
         }
 
-        function updateComponent(this: ReactPiece<TProps>, newProps: TProps) {
+        function updateComponent(this: ReactPiece<TProps>, newProps: Partial<TProps>) {
             if (!this.root || !this.target || !this.mounted) {
                 return Promise.reject(
                     new Error("Cannot update: no component has been mounted."),
@@ -149,6 +149,7 @@ function buildPieceFactory() {
             }
 
             for (const key in newProps) {
+                // @ts-expect-error TS2322: TProps might have required properties.
                 this.props[key] = newProps[key];
             }
 
