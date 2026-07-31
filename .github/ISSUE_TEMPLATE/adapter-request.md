@@ -2,7 +2,7 @@
 name: Adapter request
 about: Request an official adapter for a framework or library
 title: ''
-labels: ''
+labels: 'New Adapter!'
 assignees: ''
 type: Feature
 
