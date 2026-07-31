@@ -15,4 +15,4 @@ jobs:
       node-version: 24
       build-script: build
       test-script: test:cicd
-      build: false
+      build: true
