@@ -12,7 +12,7 @@
   "scripts": {
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "changeset publish",
+    "release": "npm run build && changeset publish",
     "build:adapter": "npm run build --workspace=packages/adapter",
     "build:adapters": "npm run build --workspace=packages/svelte --workspace=packages/react --workspace=packages/vue",
     "build:packages": "npm run build:adapter && npm run build:adapters",
