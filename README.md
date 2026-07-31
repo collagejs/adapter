@@ -9,7 +9,7 @@ This repository provides adapters for the following libraries or frameworks:
 - [Svelte](packages/svelte/)
 - [React](packages/react/)
 - [Vue](packages/vue/)
-- [Angular?](https://github.com/collagejs/issues/23)
+- [Angular?](https://github.com/collagejs/adapter/issues/23)
 
 > **ℹ️ My Framework Is Not Listed!**
 >
