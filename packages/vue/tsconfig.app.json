@@ -4,9 +4,6 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
-    "composite": true,
-    "allowImportingTsExtensions": false,
-    "noEmit": false,
 
     /* Linting */
     "noUnusedLocals": true,
@@ -14,6 +11,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "exclude": ["dist/**/*"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

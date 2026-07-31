@@ -2,6 +2,7 @@
   "name": "@collagejs/vue",
   "private": false,
   "version": "0.0.1",
+  "description": "VueJS integration for the CollageJS micro-frontend library",
   "type": "module",
   "homepage": "https://collagejs.dev",
   "bugs": {
@@ -36,10 +37,10 @@
     "preview": "vite preview",
     "test": "echo No tests yet"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@collagejs/adapter": "0.x || 1.x",
     "@collagejs/core": "0.x || 1.x",
-    "vue": "^3.5.39"
+    "vue": ">=3.3.0 <4.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
