@@ -13,7 +13,7 @@ This repository provides adapters for the following libraries or frameworks:
 > **ℹ️ My Framework Is Not Listed!**
 >
 > No worries.  Either:
-> - [Create a petition](/collagejs/adapter/issues/new) to cover your need
+> - [Create a petition](https://github.com/collagejs/adapter/issues/new) to cover your need
 > - Create the adapter yourself following the [adapter development guidelines](https://collagejs.dev/guides/development-guide-for-adapters)
 > - Create your core piece object with ad-hoc code for piece creation, or use `mountPiece` from `@collagejs/core` for piece mounting ([see docs](https://collagejs.dev/docs/introduction))
 
