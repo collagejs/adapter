@@ -6,9 +6,10 @@ This is the home for all official framework adapters for *CollageJS*, as well as
 
 This repository provides adapters for the following libraries or frameworks:
 
-- Svelte
-- React
-- Vue
+- [Svelte](packages/svelte/)
+- [React](packages/react/)
+- [Vue](packages/vue/)
+- [Angular?](https://github.com/collagejs/issues/23)
 
 > **ℹ️ My Framework Is Not Listed!**
 >
