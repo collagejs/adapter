@@ -13,6 +13,6 @@ jobs:
     uses: collagejs/cicd/.github/workflows/npm-test.yml@main
     with:
       node-version: 24
-      build-script: build
+      build-script: build:adapter
       test-script: test:cicd
       build: true
