@@ -1,6 +1,7 @@
 ---
+"@collagejs/react": patch
 "@collagejs/svelte": patch
 "@collagejs/vue": patch
 ---
 
-chore(svelte, vue): Standardize package.json
+chore(react, svelte, vue): Standardize package.json and README
