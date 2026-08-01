@@ -3,18 +3,21 @@
   "version": "0.0.2",
   "description": "React integration for the CollageJS micro-frontend library",
   "keywords": [
-    "collagejs",
     "react",
+    "collage",
+    "collage-js",
+    "collagejs",
     "micro-frontend",
+    "mfe",
     "single-spa"
   ],
   "homepage": "https://collagejs.dev",
   "bugs": {
-    "url": "https://github.com/collagejs/react/issues"
+    "url": "https://github.com/collagejs/adapter/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/collagejs/react.git"
+    "url": "git+https://github.com/collagejs/adapter.git"
   },
   "license": "MIT",
   "author": {
@@ -53,9 +56,12 @@
     "vite": "^8.0.16",
     "vitest": "^4.1.9"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@collagejs/core": "^0.x || 1.x",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "18.x || 19.x",
+    "react-dom": "18.x || 19.x"
+  },
+  "dependencies": {
+    "@collagejs/adapter": "^0.x || 1.x"
   }
 }
