@@ -4,69 +4,75 @@
 
 [Online Documentation](https://collagejs.dev)
 
-This is the official Svelte component library for *CollageJS* used to:
+This is the official Svelte framework adatper for *CollageJS* used to:
 
-1. Create *CollageJS* `CorePiece` objects out of Svelte components
-2. Consume `CorePiece` objects (made with any framework or library) in Svelte v5 projects
+1. Create `CorePiece` objects from Svelte components.
+2. Consume `CorePiece` objects (built with any framework or library) in Svelte projects.
 
-## Creating Svelte-Powered `CorePiece` Objects
+## Quickstart - Creating Pieces
 
-Whenever we are creating a micro-frontend in Svelte v5 and wish for it to be used with *CollageJS*, we must create a `CorePiece` wrapper object for the Svelte component that is the root of our micro-frontend.  Unless we wanted to take on this task ourselves, we use this package's `buildPiece()` function:
+Assuming you have a Vite-powered Svelte project:
 
-```typescript
-// mfe.ts (or whatever name you wish for the file)
-import { buildPiece } from "@collagejs/svelte";
-// The component to wrap.  It usually is App.svelte.
-import App from "./App.svelte";
-// Automatic CSS mounting and unmounting algorithm:
-import { cssMountFactory } from "@collagejs/vite-css/ex";
-
-// Only one cssMount per file is needed, regardless of the number of factory functions.
-const cssMount = cssMountFactory('mfe' /*, { options } */);
-
-export function myMfeFactory() {
-    const piece = buildPiece(App /*, { options } */);
-    export {
-        mount: [cssMount, piece.mount],
-        update: piece.update
-    }
-}
-```
-
-It is also customary to install [@collagejs/vite-css](https://github.com/collagejs/vite-css) in our piece-exporting projects to be able to mount the bundled CSS files that Vite produces.  The CSS-mounting function features FOUC prevention, but it only works if `cssMount` is listed in the array before `piece.mount`.  Remember this!
-
-> ✨ **Tip**:  Repeat this process in the same or different file for any number of Svelte components that you wish to make available as independent micro-frontends.  The sky is the limit.
-
-## Consuming `CorePiece` Objects
-
-We can mount *CollageJS* pieces created in any technology in Svelte projects by using the `<Piece>` component.  This component requires that we pass the `CorePiece` object that we wish to mount.  Any other properties given to `<Piece>` are forwarded to the mounted `CorePiece` object:
-
-```svelte
-<script lang="ts">
-    import { Piece, piece } from "@collagejs/svelte";
-    import { myMfeFactory } from "@my/bare-module-specifier";
-</script>
-
-<Piece {...piece(myMfeFactory())} extra="yes" data={true} />
-```
-
-1. We must use the `piece()` function to pass the `CorePiece` object.
-2. The example uses the name of the factory function in the previous example, so we're mounting a Svelte MFE inside a Svelte project.
-3. The `"@my/bare-module-specifier"` module name is the bare module specifier we assign to the micro-frontend in our root project's import map.
-
-### Intellisense On The `CorePiece` Props
-
-Your IDE can provide Intellisense on the properties the `CorePiece` given to `<Piece>` supports if the return value of the factory function is properly typed.
-
-You can go several routes to type the factory functions.  One of these is to create a `.d.ts` file and declare the ambient module:
-
-```typescript
-import "@collagejs/core";
-
-declare module "@my/bare-module-identifier" {
-    function myMfeFactory(): CorePiece<{ extra: string; data: boolean; }>;
-    // --------------------------------^  <-- Properties type
-    // Etc. Other factory functions for this module.
+1. Install packages:
+    ```bash
+    npm install @collagejs/svelte @collagejs/vite-css
+    ```
+2. Configure the plug-in:
+    ```typescript
     ...
-}
-```
+    import { cjsCssPlugin } from '@collagejs/vite-css';
+
+    export default defineConfig({
+        plugins: [..., cjsCssPlugin({
+            serverPort: 6101,
+            aim: false
+        })],
+        ...
+    });
+    ```
+3. Add `src/piece.ts` to create and export a piece factory function:
+    ```typescript
+    import { buildPiece } from '@collagejs/svelte';
+    import MyComponent from './lib/MyComponent.svelte';
+    // Optional CSS algorithm if you're not doing something else like CSS in JS.
+    import { CssFactory } from '@collagejs/vite-css/ex';
+
+    const css = new CssFactory(import.meta.url);
+
+    export function myComponentFactory() {
+        const piece = buildPiece(MyComponent /*, options */);
+        const { mount, relocate } = css.instantiate();
+        return {
+            ...piece,
+            mount: [mount, piece.mount],
+            relocate: [relocate, piece.relocate],
+        };
+    }
+    ```
+
+Done.  Import this factory function from outside this project using import maps, or distributing this code as an NPM package, etc.  The importer can mount the piece using a framework adapter or the core `mountPiece` function from `@collagejs/core`.
+
+## Quickstart - Consuming Pieces
+
+To consume or mount pieces is as simple as adding a Svelte component.  The difficult part is setting up the source of the piece.
+
+This is supposed to be a *quick* start, so let's go for the quickest (not recommended for production):
+
+1. Somewhere in your code, import the piece module and get to the factory function:
+    ```typescript
+    const moduleUrl = 'http://localhost:6101/piece.js',
+    const { myComponentFactory } = await import(/* @vite-ignore*/ moduleUrl);
+    ```
+2. During component initialization (the component that will mount the piece), create a piece instance with the factory function:
+    ```typescript
+    const corePiece = myComponentFactory();
+    ```
+3. Import and use the Piece component:
+    ```typescript
+    import { Piece, piece } from '@collagejs/svelte';
+    ```
+    ```svelte
+    <Piece {...piece(corePiece)} />
+    ```
+
+This is it, in its most basic form.
