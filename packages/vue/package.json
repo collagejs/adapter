@@ -1,9 +1,16 @@
 {
   "name": "@collagejs/vue",
-  "private": false,
   "version": "0.0.1",
   "description": "VueJS integration for the CollageJS micro-frontend library",
-  "type": "module",
+  "keywords": [
+    "vue",
+    "collage",
+    "collage-js",
+    "collagejs",
+    "micro-frontend",
+    "mfe",
+    "single-spa"
+  ],
   "homepage": "https://collagejs.dev",
   "bugs": {
     "url": "https://github.com/collagejs/adapter/issues"
@@ -14,10 +21,12 @@
   },
   "license": "MIT",
   "author": {
-    "name": "José Pablo Ramírez Vargas",
     "email": "webJose@gmail.com",
+    "name": "José Pablo Ramírez Vargas",
     "url": "https://github.com/webJose"
   },
+  "type": "module",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -37,11 +46,6 @@
     "preview": "vite preview",
     "test": "echo No tests yet"
   },
-  "peerDependencies": {
-    "@collagejs/adapter": "0.x || 1.x",
-    "@collagejs/core": "0.x || 1.x",
-    "vue": ">=3.3.0 <4.0.0"
-  },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "@vitejs/plugin-vue": "^6.0.7",
@@ -50,5 +54,12 @@
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
     "vue-tsc": "^3.3.5"
+  },
+  "peerDependencies": {
+    "@collagejs/core": "0.x || 1.x",
+    "vue": ">=3.3.0 <4.0.0"
+  },
+  "dependencies": {
+    "@collagejs/adapter": "0.x || 1.x"
   }
 }
