@@ -10,6 +10,8 @@ describe("index", () => {
             "hostDataAttribute",
             "frameworkDataAttribute",
             "hostAttributes",
+            "sanitizeMeta",
+            "extractMountPieceFromProps",
         ];
         const actualExports = Object.keys(await import("../src/index.js"));
         expect(actualExports).toEqual(expect.arrayContaining(expectedExports));
