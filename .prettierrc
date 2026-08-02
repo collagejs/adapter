@@ -1,0 +1,18 @@
+{
+  "tabWidth": 4,
+  "useTabs": false,
+  "printWidth": 120,
+  "trailingComma": "all",
+  "objectWrap": "preserve",
+  "bracketSameLine": false,
+  "embeddedLanguageFormatting": "auto",
+  "semi": true,
+  "overrides": [
+    {
+      "files": ["*.json", "*.yaml", "*.yml", "*.md", ".prettierrc"],
+      "options": {
+        "tabWidth": 2
+      }
+    }
+  ]
+}

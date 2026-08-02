@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { hostAttributes, hostDataAttribute, frameworkDataAttribute } from "../src/misc.js";
+import { hostAttributes, hostDataAttribute, frameworkDataAttribute } from "../src/attrs.js";
 
 describe("hostAttributes", () => {
     test.each<{
