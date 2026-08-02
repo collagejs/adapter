@@ -44,15 +44,19 @@
     "build:types": "vue-tsc -p ./tsconfig.build.json",
     "build": "npm run clean && vue-tsc -b && vite build && npm run build:types && publint",
     "preview": "vite preview",
-    "test": "echo No tests yet"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:browser": "vitest --config=vitest.browser.config.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "@vitejs/plugin-vue": "^6.0.7",
+    "@vitest/browser-playwright": "^4.1.10",
     "@vue/tsconfig": "^0.9.1",
     "rimraf": "^6.1.3",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
+    "vitest-browser-vue": "^2.1.0",
     "vue-tsc": "^3.3.5"
   },
   "peerDependencies": {

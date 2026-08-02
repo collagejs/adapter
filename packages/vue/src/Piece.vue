@@ -1,41 +1,92 @@
 <script setup lang="ts" generic="TProps extends Record<string, any> = any">
 
-import type { MountPiece } from '@collagejs/core';
-import { computed, inject, onMounted, ref, onUnmounted, watch } from 'vue';
+import { mountPiece as defaultMountPiece, type AcceptableTarget, type MountPiece } from '@collagejs/core';
+import { computed, inject, onMounted, ref, onUnmounted, watch, type PropType } from 'vue';
 import type { PieceProps } from './types.js';
 import { mountPieceContextKey } from './context.js';
 import { CorePieceLcQueue, getPieceTarget, hostAttributes } from '@collagejs/adapter';
 
+const props = defineProps({
+    piece: {
+        type: Object as PropType<PieceProps<TProps>['piece']>,
+        required: true
+    },
+    shadow: {
+        type: [Boolean, Object] as PropType<PieceProps<TProps>['shadow']>,
+        required: false,
+        default: false
+    },
+    pieceProps: {
+        type: Object as PropType<TProps>,
+        required: false,
+        default: () => ({})
+    }
+});
+
+/**
+ * Container element reference.
+ */
 let cntEl = ref<HTMLDivElement | undefined>();
-
-const mountPiece = inject(mountPieceContextKey) as MountPiece<TProps>;
-
+/**
+ * Contextual `mountPiece` function, injected from the parent component or defaulting to the core implementation.
+ */
+const mountPiece = inject(mountPieceContextKey, defaultMountPiece) as MountPiece<TProps>;
+/**
+ * The lifecycle queue for the piece to manage mounting, unmounting, and updates.
+ */
 let lc: CorePieceLcQueue<TProps>;
-
-const props = defineProps<PieceProps<TProps>>();
-const corePiece = computed(() => props.piece);
-const shadow = computed(() => props.shadow ?? false);
-const pieceProps = computed(() => props.pieceProps ?? {} as TProps);
-const hostAttrs = computed(() => hostAttributes({ framework: 'vue', shadow: shadow.value }));
-// let firstRun = true;
+/**
+ * Standardized host attributes for the container element.
+ */
+const hostAttrs = computed(() => hostAttributes({ framework: 'vue', shadow: props.shadow }));
+/**
+ * Tracking variable for the current target for relocation purposes.
+ */
+let target: AcceptableTarget;
 
 onMounted(() => {
-    const target = getPieceTarget(cntEl.value!, shadow.value);
-    lc = new CorePieceLcQueue(corePiece.value, mountPiece);
+    target = getPieceTarget(cntEl.value!, props.shadow);
+    lc = new CorePieceLcQueue(props.piece, mountPiece);
     lc.mount(target, {
-        ...pieceProps.value,
+        ...props.pieceProps,
     } as TProps);
 });
 
 onUnmounted(() => {
     lc?.unmount();
 });
-
-watch(pieceProps, (newVal, oldVal) => {
-    console.log('Watcher: pieceProps changed:', newVal, oldVal);
+/**
+ * Runtime support for reactive shadow setting.
+ */
+watch(() => props.shadow, (newVal) => {
+    const newTarget = getPieceTarget(cntEl.value!, newVal);
+    if (newTarget === target) {
+        return;
+    }
+    lc.relocate(target, newTarget, props.pieceProps as TProps);
+    lc.enqueue(() => {
+        target = newTarget;
+    });
+}, { flush: 'post' });
+/**
+ * Runtime support for reactive piece setting.
+ */
+watch(() => props.piece, (newVal) => {
+    lc.unmount();
+    const newLc = new CorePieceLcQueue(newVal, mountPiece);
+    lc.transferTo(newLc);
+    lc = newLc;
+    lc.mount(target, {
+        ...props.pieceProps,
+    } as TProps);
+});
+/**
+ * Runtime support for property changes.
+ */
+watch(() => props.pieceProps, (newVal, oldVal) => {
     const newProps = {
         ...newVal
-    };
+    } as TProps;
     // Set as undefined the properties that disappear
     for (const key in oldVal) {
         if (!(key in newVal)) {
@@ -43,20 +94,10 @@ watch(pieceProps, (newVal, oldVal) => {
             newProps[key] = undefined;
         }
     }
-    lc?.update(newProps);
+    lc.update(newProps);
 });
-
-// watchEffect(() => {
-//     curInstance?.proxy?.$attrs;
-//     if (firstRun) {
-//         firstRun = false;
-//         return;
-//     }
-//     console.log('Watcher: attrs changed:', curInstance?.proxy?.$attrs);
-//     lc?.update(curInstance?.proxy?.$attrs as TProps);
-// });
 </script>
 
 <template>
-    <div ref="cntEl" v-bind="hostAttrs"></div>
+    <div ref="cntEl" v-bind="hostAttrs" :key="JSON.stringify(shadow)"></div>
 </template>
