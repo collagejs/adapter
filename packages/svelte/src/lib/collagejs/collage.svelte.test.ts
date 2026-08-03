@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { buildPieceFactory } from "./collage.svelte.ts";
 import Dummy from "../testing/Dummy.svelte";
-import { mountPieceKey, type MountFn, type UpdateFn } from "@collagejs/core";
+import { mountPiece, mountPieceKey, type MountFn, type UpdateFn } from "@collagejs/core";
 import { createRawSnippet } from "svelte";
 
 const mountMock = vi.fn();
@@ -21,9 +21,7 @@ describe("buildPiece", () => {
         expect(() => buildPiece(undefined)).toThrow();
     });
     test("Should emit a warning when 'target' is specified in mount options.", () => {
-        const consoleWarnSpy = vi
-            .spyOn(console, "warn")
-            .mockImplementation(() => {});
+        const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
         buildPiece(Dummy, {
             mount: {
                 // @ts-expect-error target is not allowed here
@@ -75,9 +73,7 @@ describe("buildPiece", () => {
                 const piece = buildPiece(Dummy, {
                     remountable,
                 });
-                expect(piece.meta).toEqual(
-                    expect.objectContaining({ remountable }),
-                );
+                expect(piece.meta).toEqual(expect.objectContaining({ remountable }));
             },
         );
         test("Should forward any user-defined metadata to the returned piece object.", () => {
@@ -145,30 +141,20 @@ describe("buildPiece", () => {
                     context,
                 },
             });
-            await Promise.all(
-                piece.mount
-                    .filter(Boolean)
-                    .map((fn) =>
-                        (fn as MountFn)(document.createElement("div")),
-                    ),
-            );
+            const mounted = await mountPiece(piece, document.createElement("div"));
             const mountOptions = mountMock.mock.calls[0][1];
             expect(mountOptions.context).toBeInstanceOf(Map);
             expect(mountOptions.context.get("testKey")).toBe("testValue");
+            await mounted.unmount();
         });
         test("Should not pass the 'mountPiece' prop to the component being mounted.", async () => {
             const piece = buildPiece(Dummy);
-            await Promise.all(
-                piece.mount.filter(Boolean).map((fn) =>
-                    (fn as MountFn)(document.createElement("div"), {
-                        [mountPieceKey]: vi.fn(),
-                    }),
-                ),
-            );
+            const mounted = await mountPiece(piece, document.createElement("div"), {
+                [mountPieceKey]: vi.fn(),
+            });
             const mountOptions = mountMock.mock.calls[0][1];
-            expect(
-                Object.getOwnPropertySymbols(mountOptions.props),
-            ).not.toContain(mountPieceKey);
+            expect(Object.getOwnPropertySymbols(mountOptions.props)).not.toContain(mountPieceKey);
+            await mounted.unmount();
         });
         test("Should merge props from mount options and mount call, with mount call taking precedence.", async () => {
             const piece = buildPiece(Dummy, {
@@ -179,20 +165,17 @@ describe("buildPiece", () => {
                     },
                 },
             });
-            await Promise.all(
-                piece.mount.filter(Boolean).map((fn) =>
-                    (fn as MountFn)(document.createElement("div"), {
-                        propB: "fromMountCall",
-                        propC: "fromMountCall",
-                    }),
-                ),
-            );
+            const mounted = await mountPiece(piece, document.createElement("div"), {
+                propB: "fromMountCall",
+                propC: "fromMountCall",
+            });
             const mountOptions = mountMock.mock.calls[0][1];
             expect(mountOptions.props).toEqual({
                 propA: "fromMountOptions",
                 propB: "fromMountCall",
                 propC: "fromMountCall",
             });
+            await mounted.unmount();
         });
         test("Should add the 'preventRemount' function to the mount lifecycle if remountable is false.", async () => {
             const piece = buildPiece(Dummy, {
@@ -209,14 +192,8 @@ describe("buildPiece", () => {
                 mountMock.mockReturnValueOnce(undefined);
                 const piece = buildPiece(Dummy);
                 const target = document.createElement("div");
-                const unmountFns = await Promise.all(
-                    piece.mount
-                        .filter(Boolean)
-                        .map((fn) => (fn as MountFn)(target)),
-                );
-                await expect(() =>
-                    Promise.all(unmountFns.map((fn) => fn?.())),
-                ).rejects.toThrow();
+                const mounted = await mountPiece(piece, target);
+                await expect(mounted.unmount()).rejects.toThrow();
             });
         });
     });
@@ -228,19 +205,15 @@ describe("buildPiece", () => {
         test("Should update the component's props when update is called.", async () => {
             const realBuildPiece = buildPieceFactory();
             let currentProps: Record<string, any> = {};
-            const children = createRawSnippet<[Record<string, any>]>(
-                (argsFn) => {
-                    return {
-                        render() {
-                            const args = argsFn();
-                            $inspect(args).with(
-                                (t, v) => (currentProps = $state.snapshot(v)),
-                            );
-                            return `<div></div>`;
-                        },
-                    };
-                },
-            );
+            const children = createRawSnippet<[Record<string, any>]>((argsFn) => {
+                return {
+                    render() {
+                        const args = argsFn();
+                        $inspect(args).with((t, v) => (currentProps = $state.snapshot(v)));
+                        return `<div></div>`;
+                    },
+                };
+            });
             const piece = realBuildPiece(Dummy);
             await Promise.all(
                 piece.mount.filter(Boolean).map((fn) =>
@@ -282,17 +255,14 @@ describe("buildPiece", () => {
                 text: "does not support",
                 relocation: "unsupported" as const,
             },
-        ])(
-            "Should create a CorePiece object $text relocation if $relocation is specified.",
-            async ({ relocation }) => {
-                const piece = buildPiece(Dummy, {
-                    relocation,
-                });
-                expect(piece.relocate).toBeInstanceOf(Function);
-                const relocationResult = await (piece.relocate as Function)();
-                expect(relocationResult).toBe(relocation);
-            },
-        );
+        ])("Should create a CorePiece object $text relocation if $relocation is specified.", async ({ relocation }) => {
+            const piece = buildPiece(Dummy, {
+                relocation,
+            });
+            expect(piece.relocate).toBeInstanceOf(Function);
+            const relocationResult = await (piece.relocate as Function)();
+            expect(relocationResult).toBe(relocation);
+        });
         test("Should create a CorePiece object that uses the provided relocation function if one is specified.", async () => {
             const relocationFn = vi.fn().mockResolvedValue("supported");
             const piece = buildPiece(Dummy, {

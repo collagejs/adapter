@@ -213,5 +213,5 @@ The above sets the `my-piece-container` CSS class on the container element that 
 `foo` and `count` properties to the mounted piece.  This example uses constant values in the properties, but you can
 also pass stateful values that can update reactively, as if it were a regular Svelte component.
 
-Online Documentation: Pending (https://collagejs.dev)
+[Online Documentation](https://collagejs.dev/api/packages/svelte)
 -->

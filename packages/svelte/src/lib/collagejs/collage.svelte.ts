@@ -79,11 +79,12 @@ export function buildPieceFactory(
             };
         }
 
-        function updateComponent(this: SveltePiece<TProps>, newProps: TProps) {
+        function updateComponent(this: SveltePiece<TProps>, newProps: Partial<TProps>) {
             if (!this.instance) {
                 return Promise.reject(new Error('Cannot update:  No component has been mounted.'));
             }
             for (let key in newProps) {
+                // @ts-expect-error TS2322: TProps might declare required properties.
                 this.props[key] = newProps[key];
             }
             // TODO: Perhaps we need await tick() here?
