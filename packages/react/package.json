@@ -1,6 +1,6 @@
 {
   "name": "@collagejs/react",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "React integration for the CollageJS micro-frontend library",
   "keywords": [
     "react",
@@ -63,6 +63,6 @@
     "react-dom": "18.x || 19.x"
   },
   "dependencies": {
-    "@collagejs/adapter": "0.x || 1.x"
+    "@collagejs/adapter": "0.2.0"
   }
 }

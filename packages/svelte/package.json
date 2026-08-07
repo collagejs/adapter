@@ -1,16 +1,16 @@
 {
-	"name": "@collagejs/svelte",
-	"version": "0.5.0",
-	"description": "Svelte v5 integration for the CollageJS micro-frontend library",
-	"keywords": [
-		"svelte",
-		"collage",
-		"collage-js",
-		"collagejs",
-		"micro-frontend",
-		"mfe",
-		"single-spa"
-	],
+  "name": "@collagejs/svelte",
+  "version": "0.5.1",
+  "description": "Svelte v5 integration for the CollageJS micro-frontend library",
+  "keywords": [
+    "svelte",
+    "collage",
+    "collage-js",
+    "collagejs",
+    "micro-frontend",
+    "mfe",
+    "single-spa"
+  ],
   "homepage": "https://collagejs.dev",
   "bugs": {
     "url": "https://github.com/collagejs/adapter/issues"
@@ -20,20 +20,20 @@
     "url": "git+https://github.com/collagejs/adapter.git"
   },
   "license": "MIT",
-	"author": {
-		"email": "webJose@gmail.com",
-		"name": "José Pablo Ramírez Vargas",
-		"url": "https://github.com/webJose"
-	},
-	"type": "module",
-	"svelte": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"exports": {
+  "author": {
+    "email": "webJose@gmail.com",
+    "name": "José Pablo Ramírez Vargas",
+    "url": "https://github.com/webJose"
+  },
+  "type": "module",
+  "svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-			"svelte": "./dist/index.js"
-		}
-	},
+      "svelte": "./dist/index.js"
+    }
+  },
   "sideEffects": [
     "**/*.css"
   ],
@@ -57,27 +57,27 @@
     "test:cicd": "npx playwright install && npm run test",
     "test:e2e": "playwright test"
   },
-	"devDependencies": {
+  "devDependencies": {
     "@playwright/test": "^1.57.0",
-		"@sveltejs/adapter-auto": "^7.0.0",
-		"@sveltejs/kit": "^2.67.0",
-		"@sveltejs/package": "^2.5.7",
-		"@sveltejs/vite-plugin-svelte": "^7.1.2",
-		"@vitest/browser-playwright": "^4.0.15",
-		"playwright": "^1.57.0",
-		"publint": "^0.3.15",
-		"svelte": "^5.45.6",
-		"svelte-check": "^4.3.4",
-		"typescript": "^6.0.3",
-		"vite": "^8.1.0",
-		"vitest": "^4.0.15",
-		"vitest-browser-svelte": "^3.0.0"
-	},
+    "@sveltejs/adapter-auto": "^7.0.0",
+    "@sveltejs/kit": "^2.67.0",
+    "@sveltejs/package": "^2.5.7",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@vitest/browser-playwright": "^4.0.15",
+    "playwright": "^1.57.0",
+    "publint": "^0.3.15",
+    "svelte": "^5.45.6",
+    "svelte-check": "^4.3.4",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0",
+    "vitest": "^4.0.15",
+    "vitest-browser-svelte": "^3.0.0"
+  },
   "peerDependencies": {
     "@collagejs/core": "0.x || 1.x",
     "svelte": "^5.0.0"
   },
-	"dependencies": {
-		"@collagejs/adapter": "0.x || 1.x"
-	}
+  "dependencies": {
+    "@collagejs/adapter": "0.2.0"
+  }
 }
