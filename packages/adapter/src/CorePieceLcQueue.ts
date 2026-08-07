@@ -146,4 +146,17 @@ export class CorePieceLcQueue<
     enqueue<T extends (mp: MountedPiece<TProps, TMeta> | undefined) => any>(fn: T): Promise<Awaited<ReturnType<T>>> {
         return super.enqueue(() => fn(this.#mountedPiece));
     }
+    /**
+     * Gets a Boolean indicating whether the `CorePiece` object is currently mounted.
+     * 
+     * > **⚠️ CAREFUL!**
+     * >
+     * > A value of `false` doesn't mean that `CorePieceLcQueue.mount()` hasn't been called, as the mounting operation 
+     * > might be in queue.  Conversely, a value of `true` doesn't mean that `CorePieceLcQueue.unmount()` hasn't been
+     * > called, as the unmounting operation might be in queue as well.
+     * @returns `true` if the piece is mounted; otherwise, `false`.
+     */
+    get isMounted() {
+        return !!this.#mountedPiece;
+    }
 }
