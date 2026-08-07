@@ -46,13 +46,17 @@ export class CorePieceLcQueue<
     }
     /**
      * Mounts the `CorePiece` object to the specified target with the given properties.
+     * 
+     * > **⚠️ CAREFUL!**
+     * >
+     * > This is *not* an idempotent operation.
      * @param target The target to mount the piece to.
      * @param props The properties to pass to the piece during mounting.
      * @returns The mounting promise.
      */
     mount(target: AcceptableTarget, props: TProps) {
         this._guardDisposed();
-        return this.enqueue(async () => {
+        return super.enqueue(async () => {
             if (this.#mountedPiece) {
                 throw new Error("Cannot mount a piece that is already mounted.");
             }
@@ -67,7 +71,7 @@ export class CorePieceLcQueue<
      */
     unmount() {
         this._guardDisposed();
-        return this.enqueue(async () => {
+        return super.enqueue(async () => {
             this.#logger?.debug("Unmounting piece...");
             await this.#mountedPiece?.unmount();
             this.#mountedPiece = undefined;
@@ -81,7 +85,7 @@ export class CorePieceLcQueue<
      */
     update(props: Partial<TProps>) {
         this._guardDisposed();
-        return this.enqueue(async () => {
+        return super.enqueue(async () => {
             if (!this.#mountedPiece) {
                 throw new Error("Cannot update a piece that is not mounted.");
             }
@@ -99,7 +103,7 @@ export class CorePieceLcQueue<
      */
     relocate(source: AcceptableTarget, target: AcceptableTarget, props: TProps) {
         this._guardDisposed();
-        return this.enqueue(async () => {
+        return super.enqueue(async () => {
             if (!this.#mountedPiece) {
                 throw new Error("Cannot relocate a piece that is not mounted.");
             }
@@ -129,5 +133,17 @@ export class CorePieceLcQueue<
         this._guardDisposed();
         super.transferTo(otherQueue);
         return [this.#corePiece, this.#mountPiece, this.#mountedPiece] as const;
+    }
+    /**
+     * Enqueues work at the end of the promise chain (queue).
+     * 
+     * > **💡 TIP**:  Use the provided `MountedPiece` object to execute lifecycle operations without enqueuing, as 
+     * > most of the time, nesting enqueues doesn't produce the desired result.
+     * @param fn Function to execute that receives the current `MountedPiece` object (or `undefined` if not mounted) as
+     * the first argument.
+     * @returns The return value of the provided function.
+     */
+    enqueue<T extends (mp: MountedPiece<TProps, TMeta> | undefined) => any>(fn: T): Promise<Awaited<ReturnType<T>>> {
+        return super.enqueue(() => fn(this.#mountedPiece));
     }
 }

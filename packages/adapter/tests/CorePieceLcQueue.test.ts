@@ -38,9 +38,11 @@ describe("CorePieceLcQueue", () => {
         });
         test("Should do nothing if the piece is not mounted.", async () => {
             const corePiece = {} as CorePiece;
-            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn() });
+            const unmountFn = vi.fn();
+            const mountPiece = vi.fn().mockResolvedValue({ unmount: unmountFn, update: vi.fn() });
             const queue = new CorePieceLcQueue(corePiece, mountPiece);
             await expect(queue.unmount()).resolves.not.toThrow();
+            expect(unmountFn).not.toHaveBeenCalled();
         });
     });
     describe("update", () => {
@@ -107,6 +109,66 @@ describe("CorePieceLcQueue", () => {
             await queue.relocate(source, target, {});
             expect(consoleWarnSpy).not.toHaveBeenCalled();
             consoleWarnSpy.mockRestore();
+        });
+    });
+    describe("transferTo", () => {
+        test("Should transfer the queue to another queue.", async () => {
+            const corePiece = {} as CorePiece;
+            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn() });
+            const queue1 = new CorePieceLcQueue(corePiece, mountPiece);
+            const queue2 = new CorePieceLcQueue(corePiece, mountPiece);
+            queue1.transferTo(queue2);
+            expect(() => queue1.mount({} as any, {})).toThrow();
+            await expect(queue2.mount({} as any, {})).resolves.not.toThrow();
+        });
+    });
+    describe("enqueue", () => {
+        test("Should enqueue functions and execute them in order.", async () => {
+            const corePiece = {} as CorePiece;
+            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn() });
+            const queue = new CorePieceLcQueue(corePiece, mountPiece);
+            const results: number[] = [];
+            queue.enqueue(async () => { results.push(1); });
+            queue.enqueue(async () => { results.push(2); });
+            queue.enqueue(async () => { results.push(3); });
+            await queue.chain;
+            expect(results).toEqual([1, 2, 3]);
+        });
+        test("Should provide the mounted piece to the enqueued functions.", async () => {
+            const corePiece = {} as CorePiece;
+            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn() });
+            const queue = new CorePieceLcQueue(corePiece, mountPiece);
+            const target = document.createElement("div");
+            await queue.mount(target, {});
+            let mountedPieceInFn: any;
+            queue.enqueue(async (mp) => { mountedPieceInFn = mp; });
+            await queue.chain;
+            expect(mountedPieceInFn).toBeDefined();
+        });
+        test("Should not provide any mounted piece to the enqueued functions if the piece is not mounted.", async () => {
+            const corePiece = {} as CorePiece;
+            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn() });
+            const queue = new CorePieceLcQueue(corePiece, mountPiece);
+            let mountedPieceInFn: any;
+            queue.enqueue(async (mp) => { mountedPieceInFn = mp; });
+            await queue.chain;
+            expect(mountedPieceInFn).toBeUndefined();
+        });
+    });
+    describe("isMounted", () => {
+        test("Should return true if the piece is mounted.", async () => {
+            const corePiece = {} as CorePiece;
+            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn() });
+            const queue = new CorePieceLcQueue(corePiece, mountPiece);
+            const target = document.createElement("div");
+            await queue.mount(target, {});
+            expect(queue.isMounted).toBe(true);
+        });
+        test("Should return false if the piece is not mounted.", async () => {
+            const corePiece = {} as CorePiece;
+            const mountPiece = vi.fn().mockResolvedValue({ unmount: vi.fn(), update: vi.fn() });
+            const queue = new CorePieceLcQueue(corePiece, mountPiece);
+            expect(queue.isMounted).toBe(false);
         });
     });
 });
