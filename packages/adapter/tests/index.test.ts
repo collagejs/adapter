@@ -12,6 +12,7 @@ describe("index", () => {
             "hostAttributes",
             "sanitizeMeta",
             "extractMountPieceFromProps",
+            "unmountAndTransferLcQueue",
         ];
         const actualExports = Object.keys(await import("../src/index.js"));
         expect(actualExports).toEqual(expect.arrayContaining(expectedExports));

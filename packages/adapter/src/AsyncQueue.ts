@@ -45,8 +45,8 @@ export class AsyncQueue {
         }
     }
     /**
-     * Enqueues an asynchronous function to be executed after the previous function in the queue has completed.
-     * @param fn Asynchronous function to execute.
+     * Enqueues work at the end of the promise chain (queue).
+     * @param fn Function to execute.
      * @returns The return value of the provided function.
      */
     enqueue<T extends (...args: any[]) => any>(fn: T): Promise<Awaited<ReturnType<T>>> {
@@ -90,5 +90,14 @@ export class AsyncQueue {
         }
         this.#chain = undefined as any;
         this.#disposed = true;
+    }
+    /**
+     * Gets the current promise chain of the queue.
+     * 
+     * **💡 TIP**:  Await the chain to ensure the completion of all enqueued functions.
+     */
+    get chain() {
+        this._guardDisposed();
+        return this.#chain;
     }
 }
