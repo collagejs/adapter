@@ -4,7 +4,7 @@ import { mountPiece as defaultMountPiece, type AcceptableTarget, type MountPiece
 import { computed, inject, onMounted, ref, onUnmounted, watch, type PropType } from 'vue';
 import type { PieceProps } from './types.js';
 import { mountPieceContextKey } from './context.js';
-import { CorePieceLcQueue, getPieceTarget, hostAttributes } from '@collagejs/adapter';
+import { CorePieceLcQueue, getPieceTarget, hostAttributes, unmountAndTransferLcQueue } from '@collagejs/adapter';
 
 const props = defineProps({
     piece: {
@@ -72,10 +72,7 @@ watch(() => props.shadow, (newVal) => {
  * Runtime support for reactive piece setting.
  */
 watch(() => props.piece, (newVal) => {
-    lc.unmount();
-    const newLc = new CorePieceLcQueue(newVal, mountPiece);
-    lc.transferTo(newLc);
-    lc = newLc;
+    lc = unmountAndTransferLcQueue(lc, newVal, mountPiece);
     lc.mount(target, {
         ...props.pieceProps,
     } as TProps);
