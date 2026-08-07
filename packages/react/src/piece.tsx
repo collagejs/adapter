@@ -1,30 +1,15 @@
-import {
-    forwardRef,
-    useEffect,
-    useImperativeHandle,
-    useRef,
-} from "react";
-import type {
-    ComponentPropsWithoutRef,
-    ForwardedRef,
-    ReactElement,
-    RefAttributes,
-} from "react";
-import type {
-    AcceptableTarget,
-    CorePiece,
-    MountPiece,
-    MountedPiece,
-} from "@collagejs/core";
+import { useEffect, useRef, useMemo } from "react";
+import type { AcceptableTarget, CorePiece, MountPiece } from "@collagejs/core";
 import { mountPiece } from "@collagejs/core";
 import { useCollageContext } from "./collageContext.js";
+import { CorePieceLcQueue, hostAttributes, unmountAndTransferLcQueue } from "@collagejs/adapter";
+import type { PieceOptions } from "./types.js";
 
+/**
+ * Symbol used to store the Piece component's own properties.  This doesn't reserve any public prop names so the entire 
+ * namespace can be used for the mounted core piece object.
+ */
 const piecePropsSymbol = Symbol("collagejs.pieceProps");
-const cachedShadowRootSymbol = Symbol("collagejs.cachedShadowRoot");
-
-const activeCorePieces = new WeakSet<CorePiece<any>>();
-const retiredCorePieces = new WeakSet<CorePiece<any>>();
-
 /**
  * Special props consumed by the React `Piece` component.
  *
@@ -33,21 +18,14 @@ const retiredCorePieces = new WeakSet<CorePiece<any>>();
  * out of the public prop namespace, so user props can use any string key
  * without collisions.
  */
-export type PieceProps<
-    TProps extends Record<string, any> = Record<string, any>,
-> = {
-    [piecePropsSymbol]: {
+type PieceProps<TProps extends Record<string, any> = Record<string, any>> = {
+    [piecePropsSymbol]: PieceOptions & {
+        /**
+         * The required core piece instance (or promise) to mount.
+         */
         piece: CorePiece<TProps> | Promise<CorePiece<TProps>>;
-        shadow?: boolean | ShadowRootInit;
-        containerProps?: ComponentPropsWithoutRef<"div">;
     };
 };
-
-export type PieceOptions = {
-    containerProps?: ComponentPropsWithoutRef<"div">;
-    shadow?: boolean | ShadowRootInit;
-};
-
 /**
  * Creates the special symbol-backed prop required by the `Piece` component.
  *
@@ -61,330 +39,201 @@ export type PieceOptions = {
  * @param piece CorePiece instance (or promise) to mount.
  * @param options Optional settings for the host `<div>` and shadow-root behavior.
  */
-export function piece<
-    TProps extends Record<string, any> = Record<string, any>,
->(
+export function piece<TProps extends Record<string, any> = Record<string, any>>(
     piece: CorePiece<TProps> | Promise<CorePiece<TProps>>,
     options?: PieceOptions,
 ) {
-    const { containerProps, shadow } = options ?? {};
 
     return {
         [piecePropsSymbol]: {
             piece,
-            shadow,
-            containerProps,
+            ...options,
         },
     } as PieceProps<TProps>;
 }
-
-type Props<TProps extends Record<string, any> = Record<string, any>> =
-    TProps & PieceProps<TProps>;
-
-type MountMode = "light" | "shadow";
-
-function isHmrActive() {
-    const meta = import.meta as ImportMeta & {
-        hot?: {
-            invalidate: (message?: string) => void;
-        };
-    };
-
-    return meta.hot != null;
-}
-
-function invalidateHmr(message: string) {
-    const meta = import.meta as ImportMeta & {
-        hot?: {
-            invalidate: (message?: string) => void;
-        };
-    };
-
-    meta.hot?.invalidate(message);
-}
-
-function forcePageReload() {
-    if (typeof window === "undefined") {
-        return;
-    }
-
-    window.location.reload();
-}
-
-function getMountMode(shadow?: boolean | ShadowRootInit): MountMode {
-    return shadow ? "shadow" : "light";
-}
-
-function getHostModeValue(shadow?: boolean | ShadowRootInit): "dom" | "open" | "closed" {
-    if (!shadow) {
-        return "dom";
-    }
-
-    if (shadow === true) {
-        return "open";
-    }
-
-    return shadow.mode;
-}
-
-function getPieceRuntimeProps<
-    TProps extends Record<string, any> = Record<string, any>,
->(props: Props<TProps>): TProps {
-    const runtimeProps = { ...props } as Record<string | symbol, any>;
-    delete runtimeProps[piecePropsSymbol];
-    return runtimeProps as TProps;
-}
-
-function assertCorePieceCanMount<
-    TProps extends Record<string, any> = Record<string, any>,
->(corePiece: CorePiece<TProps>) {
-    if (retiredCorePieces.has(corePiece)) {
-        throw new Error(
-            "A CorePiece instance cannot be remounted after it has been unmounted. Create a new CorePiece and a new Piece component instance.",
-        );
-    }
-
-    if (activeCorePieces.has(corePiece)) {
-        throw new Error(
-            "This CorePiece instance is already mounted. CorePiece instances are single-use and must not be mounted more than once.",
-        );
-    }
-}
-
-function resolveMountTarget(
-    container: HTMLDivElement,
-    shadow?: boolean | ShadowRootInit,
-): AcceptableTarget {
-    if (!shadow) {
+/**
+ * Property key used to store the shadow root on the container element.
+ * @internal
+ */
+const containerShadowKey = Symbol();
+/**
+ * Obtains the target where the core piece should mount based on the current shadow configuration.
+ * 
+ * **ℹ️ NOTE**:  Because of React's [Strict Mode](https://react.dev/reference/react/StrictMode), the function provided
+ * by `@collagejs/adapter` cannot be used:  Strict mode runs top-level rendering code twice, but doesn't destroy the 
+ * markup generated by the first one.  The container is the same, which causes the provided function to throw trying
+ * to create a shadow root on an element that already has one.
+ * 
+ * This function attaches the shadow root to the container using a symbol property, and uses this property first before
+ * trying to create shadow roots.
+ * @param container Container for the core piece.
+ * @param shadow Current shadow configuration.
+ * @returns The target where the core piece needs to mount according to the current shadow configuration.
+ */
+function getPieceTarget(container: HTMLDivElement, shadow: boolean | ShadowRootInit): AcceptableTarget {
+    if (shadow === false) {
         return container;
     }
-
-    // For open shadow roots, container.shadowRoot is accessible.
-    if (container.shadowRoot) {
-        return container.shadowRoot;
+    const shadowMode = shadow === true ? "open" : shadow.mode;
+    const existingShadow = (container as any)[containerShadowKey] as ShadowRoot | undefined;
+    if (existingShadow && existingShadow?.mode !== shadowMode) {
+        throw new Error(`Shadow root mode mismatch:  Existing shadow root has mode "${existingShadow?.mode}", but requested mode is "${shadowMode}".  It's impossible to comply.`);
     }
-
-    // For closed shadow roots (or any shadow root), check our cache.
-    // This prevents re-attaching during StrictMode double-render.
-    const cached = (container as any)[cachedShadowRootSymbol];
-    if (cached instanceof ShadowRoot) {
-        return cached;
+    if (existingShadow) {
+        return existingShadow;
     }
-
-    const shadowInit = shadow === true ? { mode: "open" as const } : shadow;
-
-    try {
-        const sr = container.attachShadow(shadowInit);
-        // Cache the shadow root so StrictMode re-renders can reuse it.
-        (container as any)[cachedShadowRootSymbol] = sr;
-        return sr;
-    } catch {
-        throw new Error(
-            "Could not create a shadow root for Piece. The host may already have a closed shadow root.",
-        );
-    }
+    const init = shadow === true ? { mode: "open" as const } : shadow;
+    const newRoot = container.attachShadow(init); 
+    (container as any)[containerShadowKey] = newRoot;
+    return newRoot;
 }
 
-function PieceImpl<
-    TProps extends Record<string, any> = Record<string, any>,
->(props: Props<TProps>, ref: ForwardedRef<HTMLDivElement>) {
+function PieceImpl<TProps extends Record<string, any> = Record<string, any>>(
+    props: TProps & PieceProps<TProps>,
+) {
+    const { [piecePropsSymbol]: pieceProps, ...restProps } = props;
+    const logger = useMemo(() => (pieceProps.logging ? console : undefined), [pieceProps.logging]);
+    logger?.group('Piece Render');
     const containerRef = useRef<HTMLDivElement>(null);
+    const containerRefChg = useRef(containerRef.current);
+    logger?.debug('[Piece] Container Ref changed?', containerRefChg.current !== containerRef.current);
+    containerRefChg.current = containerRef.current;
+    /**
+     * Tracks the current mount target (either the container div or a shadow root) for the mounted piece.
+     */
     const mountTargetRef = useRef<AcceptableTarget | null>(null);
-    const mountModeRef = useRef<MountMode | null>(null);
-    const mountedPieceRef = useRef<MountedPiece<TProps> | null>(null);
-    const mountedCorePieceRef = useRef<CorePiece<TProps> | null>(null);
-    const latestPropsRef = useRef<Props<TProps>>(props);
-    const initialPieceInputRef =
-        useRef<CorePiece<TProps> | Promise<CorePiece<TProps>> | null>(null);
-    const initialMountPieceRef = useRef<MountPiece<TProps> | null>(null);
-    const fallbackMountPieceRef = useRef<MountPiece<TProps> | null>(null);
-
-    useImperativeHandle(ref, () => containerRef.current as HTMLDivElement);
-
-    const collageContext = useCollageContext();
-
-    if (!fallbackMountPieceRef.current) {
-        fallbackMountPieceRef.current = async (pieceInput, target, mountProps) => {
-            const resolvedPiece = await Promise.resolve(pieceInput);
-            return mountPiece(resolvedPiece, target, mountProps);
-        };
-    }
-
-    const parentAwareMountPiece =
-        (collageContext?.mountPiece as MountPiece<TProps> | undefined) ??
-        fallbackMountPieceRef.current;
-
-    if (!initialMountPieceRef.current) {
-        initialMountPieceRef.current = parentAwareMountPiece;
-    } else if (initialMountPieceRef.current !== parentAwareMountPiece) {
-        throw new Error(
-            "Piece cannot change mount context after initialization. Create a new Piece instance instead.",
-        );
-    }
-
-    const { [piecePropsSymbol]: pieceProps } = props;
-    latestPropsRef.current = props;
-
-    if (initialPieceInputRef.current === null) {
-        initialPieceInputRef.current = pieceProps.piece;
-    } else if (initialPieceInputRef.current !== pieceProps.piece) {
-        if (mountedCorePieceRef.current == null) {
-            // Before the first successful mount, React StrictMode and other dev
-            // render-phase retries can legitimately produce a new identity.
-            initialPieceInputRef.current = pieceProps.piece;
+    /**
+     * Variable to make TS happy.  Doesn't seem to be capable of knowing that symbol is no longer in the type.
+     */
+    const cpProps = restProps as unknown as TProps;
+    /**
+     * Shadow setting with default applied.
+     */
+    const shadow = pieceProps.shadow ?? false;
+    /**
+     * The mountPiece function to use by the LC queue.
+     */
+    const parentAwareMountPieceFn = useCollageContext();
+    const mountPieceFn = useMemo(() => (parentAwareMountPieceFn ?? mountPiece) as MountPiece<TProps>, [parentAwareMountPieceFn]);
+    /**
+     * Key used for the root element to force remounting when the shadow setting changes.
+     */
+    const rootElKey = (() => {
+        switch (shadow) {
+            case false:
+                return "light";
+            case true:
+                return "open";
+            default:
+                return shadow.mode;
         }
+    })();
+    /**
+     * LC queue for managing the lifecycle of the mounted piece.
+     */
+    const lc = useRef(new CorePieceLcQueue(pieceProps.piece, mountPieceFn));
 
-        else if (isHmrActive()) {
-            // In HMR, modules are replaced in place and `piece(...)` arguments can
-            // become new object identities during a hot update.
-            initialPieceInputRef.current = pieceProps.piece;
-        } else {
-            throw new Error(
-                "Piece received a different CorePiece input after initialization. Create a new Piece component instance instead of reusing an existing one.",
-            );
-        }
-    }
+    logger?.debug('[Piece] Container:', containerRef.current);
+    logger?.debug('[Piece] Mount Target:', mountTargetRef.current);
+    logger?.debug('[Piece] Shadow setting:', shadow);
+    logger?.debug('[Piece] Root Key:', rootElKey);
+    logger?.debug('[Piece] Core Piece Props:', cpProps);
+    logger?.debug('[Piece] LC Queue:', lc.current);
+    
+    // useImperativeHandle(ref, () => containerRef.current as HTMLDivElement);
 
+    // Unmount, transfer & mount.
     useEffect(() => {
-        const container = containerRef.current;
-        const initialProps = getPieceRuntimeProps(props);
-
-        if (!container) {
+        if (!mountTargetRef.current) {
+            logger?.debug('[Piece] useEffect triggered for unmount/transfer/mount, but mount target is not available yet.');
             return;
         }
+        logger?.debug('[Piece] useEffect triggered for unmount/transfer/mount. Piece:', pieceProps.piece);
+        lc.current = unmountAndTransferLcQueue(lc.current, pieceProps.piece, mountPieceFn);
+        lc.current.mount(mountTargetRef.current, cpProps);
+    }, [parentAwareMountPieceFn, pieceProps.piece]);
 
-        const mode = getMountMode(pieceProps.shadow);
-        mountModeRef.current = mode;
-        mountTargetRef.current = resolveMountTarget(container, pieceProps.shadow);
-
-        let didCleanup = false;
-        const mountPromise = Promise.resolve(pieceProps.piece)
-            .then(async (corePiece) => {
-                if (didCleanup) {
-                    return;
-                }
-
-                assertCorePieceCanMount(corePiece);
-                activeCorePieces.add(corePiece);
-
-                const mountPieceFn = initialMountPieceRef.current;
-
-                if (!mountPieceFn) {
-                    throw new Error(
-                        "Failed to mount Piece: no mountPiece function is available in this context.",
-                    );
-                }
-
-                const mountedPiece = await mountPieceFn(
-                    corePiece,
-                    mountTargetRef.current as AcceptableTarget,
-                    initialProps,
-                );
-
-                if (didCleanup) {
-                    await mountedPiece.unmount();
-                    activeCorePieces.delete(corePiece);
-                    retiredCorePieces.add(corePiece);
-                    return;
-                }
-
-                mountedCorePieceRef.current = corePiece;
-                mountedPieceRef.current = mountedPiece;
-
-                // If props changed while mount was in-flight, apply the latest
-                // values now so updates are not missed.
-                void mountedPiece.update(getPieceRuntimeProps(latestPropsRef.current));
-            })
-            .catch((error: unknown) => {
-                const message =
-                    error instanceof Error ? error.message : String(error);
-                throw new Error(`Failed to mount Piece: ${message}`);
-            });
+    // Mount.
+    useEffect(() => {
+        if (!containerRef.current) {
+            logger?.debug('[Piece] useEffect triggered for mounting, but container is not available yet.');
+            return;
+        }
+        containerRefChg.current = containerRef.current;
+        logger?.debug('[Piece] useEffect triggered for mounting.');
+        mountTargetRef.current = getPieceTarget(containerRef.current, shadow);
+        lc.current.mount(mountTargetRef.current, cpProps);
 
         return () => {
-            didCleanup = true;
-
-            mountModeRef.current = null;
+            logger?.debug('[Piece] useEffect cleanup triggered for unmounting.');
             mountTargetRef.current = null;
-
-            void mountPromise
-                .then(async () => {
-                    const mountedPiece = mountedPieceRef.current;
-
-                    mountedPieceRef.current = null;
-
-                    if (mountedPiece) {
-                        await mountedPiece.unmount();
-                    }
-
-                    const corePiece = mountedCorePieceRef.current;
-                    mountedCorePieceRef.current = null;
-
-                    if (corePiece) {
-                        activeCorePieces.delete(corePiece);
-                        retiredCorePieces.add(corePiece);
-                    }
-
-                    // Clear the cached shadow root on true unmount.
-                    if (container) {
-                        delete (container as any)[cachedShadowRootSymbol];
-                    }
-                })
-                .catch(() => {
-                    // The mount promise already wraps and reports a clear runtime error.
-                });
+            lc.current.unmount();
         };
     }, []);
 
+    // Relocate.
     useEffect(() => {
-        const initialMode = mountModeRef.current;
-
-        if (!initialMode) {
+        if (!containerRef.current || !mountTargetRef.current) {
+            logger?.log('[Piece] useEffect triggered for relocating, but container or mount target is not available yet.');
             return;
         }
-
-        const currentMode = getMountMode(pieceProps.shadow);
-
-        if (currentMode !== initialMode) {
-            if (isHmrActive()) {
-                // Shadow mode cannot be switched on a live mount target.
-                // During HMR, request invalidation and also trigger a hard reload
-                // fallback because linked library updates may not navigate automatically.
-                invalidateHmr(
-                    "Piece shadow mode changed after mount; reloading to remount safely.",
-                );
-                forcePageReload();
-                return;
-            }
-
-            throw new Error(
-                "Piece shadow mode cannot change after mount. Create a new Piece instance to switch between light and shadow DOM.",
-            );
-        }
-    }, [pieceProps.shadow]);
-
-    useEffect(() => {
-        const mountedPiece = mountedPieceRef.current;
-
-        if (!mountedPiece) {
+        logger?.debug('[Piece] useEffect triggered for relocating.  Shadow:', shadow);
+        const newTarget = getPieceTarget(containerRef.current, shadow);
+        if (newTarget === mountTargetRef.current) {
+            logger?.debug('[Piece] Relocate useEffect: new target is the same as current target. No action taken.');
             return;
         }
+        lc.current.relocate(mountTargetRef.current, newTarget, cpProps);
+        lc.current.enqueue(() => void (mountTargetRef.current = newTarget));
+    }, [shadow]);
 
-        const currentProps = getPieceRuntimeProps(props);
-        void mountedPiece.update(currentProps);
-    });
+    // Update.
+    useEffect(() => {
+        logger?.debug('[Piece] useEffect triggered for updating. CP Props:', cpProps);
+        lc.current.update(cpProps);
+    }, [cpProps]);
+    logger?.groupEnd();
 
     return (
         <div
+            key={rootElKey}
             ref={containerRef}
             {...pieceProps.containerProps}
-            data-cjs-piece-host={getHostModeValue(pieceProps.shadow)}
+            {...hostAttributes({ framework: "react", shadow })}
         />
     );
 }
-
-export const Piece = forwardRef(PieceImpl) as <
-    TProps extends Record<string, any> = Record<string, any>,
->(
-    props: Props<TProps> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null;
+/**
+ * ### Piece Component
+ * 
+ * The `Piece` component is a React wrapper for mounting *CollageJS* pieces. It manages the lifecycle of the piece, 
+ * including mounting, updating, relocating, and unmounting, while providing a container for the piece to render into.
+ * The component supports both light DOM and shadow DOM rendering based on the provided options.
+ * 
+ * @example
+ * ```tsx
+ * function AppComponent() {
+ *   import { useMemo, useState } from "react";
+ *   import { Piece, piece } from "@collagejs/react";
+ *   import { myCorePiece } from "@myScope/myCorePiece";
+ * 
+ *   const myPiece = useMemo(() => myCorePiece(), []);
+ *   const [pieceProps, setPieceProps] = useState({ foo: "bar", count: 0 });
+ * 
+ *   return <>
+ *     <Piece
+ *       {...piece(myPiece, { containerProps: { className: "host" }, shadow: true })}
+ *       {...pieceProps}
+ *     />
+ *     <button
+ *       onClick={() => setPieceProps({ ...pieceProps, count: pieceProps.count + 1 })}
+ *     >
+ *       Increment Count
+ *     </button>
+ *   </>;
+ * }
+ * ```
+ * 
+ * **ℹ️ IMPORTANT**:  The actual core piece (or the promise to it) should be memoized.
+ */
+export const Piece = PieceImpl;

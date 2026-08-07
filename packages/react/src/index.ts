@@ -10,6 +10,4 @@ export {
 	CollageProvider,
 	useCollageContext,
 } from "./collageContext.js";
-export type { CollageContext } from "./collageContext.js";
-export type { ComponentOperationOptions } from "./collage.js";
 export type * from "./piece.js";
